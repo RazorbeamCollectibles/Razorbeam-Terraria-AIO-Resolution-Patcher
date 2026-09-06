@@ -1,0 +1,75 @@
+name: Draft release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+      - run: python -m pip install -r requirements-build.txt
+      - shell: pwsh
+        run: ./scripts/test.ps1
+      - shell: pwsh
+        run: ./scripts/build.ps1
+      - shell: pwsh
+        run: ./scripts/build.ps1 -OneFile
+      - name: Package release files
+        shell: pwsh
+        run: |
+          $version = $env:GITHUB_REF_NAME.TrimStart('v')
+          $stage = Join-Path $PWD '.build\release'
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+
+          $portable = Join-Path $stage 'RazorbeamTerrariaPatcher'
+          Copy-Item '.build\portable\RazorbeamTerrariaPatcher' $portable -Recurse
+          Copy-Item 'README.md','LICENSE','THIRD_PARTY_NOTICES.md' $portable
+          Compress-Archive -LiteralPath $portable -DestinationPath (Join-Path $stage "Razorbeam-Terraria-AIO-RP-v$version-portable.zip")
+          Remove-Item $portable -Recurse -Force
+
+          $standalone = Join-Path $stage 'standalone'
+          New-Item -ItemType Directory -Force -Path $standalone | Out-Null
+          Copy-Item '.build\standalone\RazorbeamTerrariaPatcher.exe' $standalone
+          Copy-Item 'README.md','LICENSE','THIRD_PARTY_NOTICES.md' $standalone
+          Compress-Archive -Path "$standalone\*" -DestinationPath (Join-Path $stage "Razorbeam-Terraria-AIO-RP-v$version-standalone.zip")
+          Remove-Item $standalone -Recurse -Force
+
+          $sourceArchive = Join-Path $stage "Razorbeam-Terraria-AIO-RP-v$version-source.zip"
+          git archive --format=zip "--output=$sourceArchive" HEAD
+          Copy-Item 'app\tmod\RazorbeamDisplay.tmod' (Join-Path $stage "All-in-One-Resolution-Patcher-v$version.tmod")
+
+          $kitStage = Join-Path $stage 'kit-stage\tModLoader Version'
+          $modSource = Join-Path $kitStage 'ModSources\RazorbeamDisplay'
+          $builtMod = Join-Path $kitStage 'Built Mod'
+          $listing = Join-Path $kitStage 'Workshop Listing'
+          New-Item -ItemType Directory -Force -Path $modSource,$builtMod,$listing | Out-Null
+          Copy-Item 'app\tmod\RazorbeamDisplay\*' $modSource -Recurse
+          Copy-Item 'app\tmod\RazorbeamDisplay.tmod' (Join-Path $builtMod 'RazorbeamDisplay.tmod')
+          Copy-Item 'app\tmod\RazorbeamDisplay\description_workshop.txt','app\tmod\RazorbeamDisplay\description.txt','app\tmod\RazorbeamDisplay\changelog.txt','app\tmod\RazorbeamDisplay\icon_workshop.png','app\tmod\RazorbeamDisplay\icon.png' $listing
+          Copy-Item 'release\workshop\README - START HERE.md' $kitStage
+          Copy-Item 'release\workshop\LISTING-SETTINGS.md','release\workshop\PUBLISHING-CHECKLIST.md' $listing
+          $kitFiles = Get-ChildItem $kitStage -Recurse -File | Sort-Object FullName
+          $kitFiles | ForEach-Object { "{0}  {1}" -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant(),$_.FullName.Substring($kitStage.Length + 1).Replace('\','/') } | Set-Content (Join-Path $kitStage 'SHA256SUMS.txt')
+          Compress-Archive -LiteralPath $kitStage -DestinationPath (Join-Path $stage "Steam-Workshop-Upload-Kit-v$version.zip")
+          Remove-Item (Join-Path $stage 'kit-stage') -Recurse -Force
+
+          $downloads = Get-ChildItem $stage -File | Where-Object Extension -in '.zip','.tmod' | Sort-Object Name
+          $downloads | ForEach-Object { "{0}  {1}" -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant(),$_.Name } | Set-Content (Join-Path $stage 'SHA256SUMS.txt')
+      - name: Create draft GitHub release
+        shell: pwsh
+        run: |
+          $assets = (Get-ChildItem '.build\release' -File).FullName
+          gh release create "$env:GITHUB_REF_NAME" --draft --verify-tag --title "All-in-One Resolution Patcher $env:GITHUB_REF_NAME" --notes-file release/GITHUB_RELEASE_NOTES.md $assets

@@ -1,0 +1,9 @@
+* text=auto eol=crlf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.png binary
+*.ico binary
+*.dll binary
+*.exe binary
+*.tmod binary

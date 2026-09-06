@@ -1,0 +1,65 @@
+Configs: {
+	DisplayConfig: {
+		DisplayName: Display Config
+
+		Enabled: {
+			Label: Enabled
+			Tooltip: ""
+		}
+
+		Width: {
+			Label: Width
+			Tooltip: ""
+		}
+
+		Height: {
+			Label: Height
+			Tooltip: ""
+		}
+
+		WindowX: {
+			Label: Window X
+			Tooltip: ""
+		}
+
+		WindowY: {
+			Label: Window Y
+			Tooltip: ""
+		}
+
+		WindowMode: {
+			Label: Window Mode
+			Tooltip: ""
+		}
+
+		StableTitle: {
+			Label: Stable Title
+			Tooltip: ""
+		}
+
+		CenteredUi: {
+			Label: Centered Ui
+			Tooltip: ""
+		}
+
+		UiX: {
+			Label: Ui X
+			Tooltip: ""
+		}
+
+		UiY: {
+			Label: Ui Y
+			Tooltip: ""
+		}
+
+		UiWidth: {
+			Label: Ui Width
+			Tooltip: ""
+		}
+
+		UiHeight: {
+			Label: Ui Height
+			Tooltip: ""
+		}
+	}
+}

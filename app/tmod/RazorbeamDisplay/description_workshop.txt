@@ -1,0 +1,20 @@
+[h1]All-in-One Resolution Patcher[/h1]
+
+Client-side display bridge for Razorbeam All-in-One Resolution Patcher for Terraria. Span tModLoader across custom or multi-monitor layouts while keeping the interface readable and interactive on a selected viewport.
+
+[list]
+[*]Exact multi-monitor window placement, including signed desktop coordinates
+[*]Scale-aware centered inventory, equipment, minimap, menus, crafting, and mod-added UI
+[*]Centered mouse interaction at every supported UI Scale
+[*]Removes tModLoader's forced ultrawide minimum world zoom
+[*]Optional minimized-window recovery without focus stealing or always-on-top behavior
+[*]Optional startup splash bypass after loading completes
+[/list]
+
+The companion desktop patcher installs and configures this mod. This client-side bridge does not modify worlds, players, servers, or tModLoader.dll.
+
+[b]Companion application and source[/b]
+https://github.com/RazorbeamCollectibles/Razorbeam-Terraria-AIO-Resolution-Patcher
+
+Version: {ModVersion}
+tModLoader: {tMLVersion}

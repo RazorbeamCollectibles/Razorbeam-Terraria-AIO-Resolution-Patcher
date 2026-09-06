@@ -1,0 +1,62 @@
+name: Bug report
+description: Report a reproducible patching, display, launch, or restore failure
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not attach game executables, saves, Steam credentials, or private account data.
+  - type: input
+    id: version
+    attributes:
+      label: RBTAIORP version
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: target
+    attributes:
+      label: Target
+      options:
+        - Terraria
+        - tModLoader
+        - Both
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Windows version, game version, GPU, monitor count/resolutions/origins, and selected patch options.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Diagnostic log
+      description: Attach an exported log after reviewing it for personal paths.
+  - type: checkboxes
+    id: backup
+    attributes:
+      label: Safety check
+      options:
+        - label: I kept the verified backup/output directory and did not attach copyrighted game files.
+          required: true

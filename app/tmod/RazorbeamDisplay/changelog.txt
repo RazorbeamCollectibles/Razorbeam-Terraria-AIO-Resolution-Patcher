@@ -1,0 +1,7 @@
+1.0.0
+- First public release.
+- Adds arbitrary multi-monitor layouts for Terraria and tModLoader.
+- Centers UI and input on the chosen viewport at every supported UI scale.
+- Preserves crafting interaction, cursor mapping, minimap, and mod UI layers.
+- Adds verified backup and restore, stable titles, startup controls, and offline diagnostics.
+- Makes Skip startup splash bypass tModLoader's visual splash after loading completes safely.

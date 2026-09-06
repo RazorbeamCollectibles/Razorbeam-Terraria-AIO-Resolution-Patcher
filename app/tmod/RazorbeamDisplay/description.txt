@@ -1,0 +1,1 @@
+Client-side multi-monitor display bridge for Razorbeam All-in-One Resolution Patcher for Terraria. Centers UI and input at any supported UI Scale, controls window placement and zoom, and never modifies worlds or servers. Companion app: https://github.com/RazorbeamCollectibles/Razorbeam-Terraria-AIO-Resolution-Patcher

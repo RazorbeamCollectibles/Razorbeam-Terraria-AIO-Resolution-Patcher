@@ -1,0 +1,5 @@
+displayName = All-in-One Resolution Patcher
+author = RazorbeamCollectibles
+version = 1.0.0
+side = Client
+homepage = https://github.com/RazorbeamCollectibles/Razorbeam-Terraria-AIO-Resolution-Patcher
