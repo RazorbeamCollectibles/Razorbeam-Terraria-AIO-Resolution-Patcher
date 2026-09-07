@@ -13,7 +13,7 @@
 
 # Quick Start Guide
 - (easiest) Just click [here](https://github.com/RazorbeamCollectibles/Razorbeam-Terraria-AIO-Resolution-Patcher/releases/download/v1.0.0/RazorbeamTerrariaAIORPatcher.exe).
-- Go to [Releases](https://github.com/RazorbeamCollectibles/Razorbeam-Terraria-AIO-Resolution-Patcher/releases), scroll to the bottom, and download any of the .zip files, unzip, and click "LaunchRazorbeamDownloader.bat"
+- Go to [Releases](https://github.com/RazorbeamCollectibles/Razorbeam-Terraria-AIO-Resolution-Patcher/releases), scroll to the bottom, and download any of the .zip files, unzip, and click "LaunchRazorbeamTerrariaPatcher.bat"
 - Click Code, Download ZIP, unzip, and click "LaunchRazorbeamTerrariaPatcher.bat"
 
 ## Showcase 
