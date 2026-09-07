@@ -2,6 +2,10 @@
 
 All notable changes use [Semantic Versioning](https://semver.org/).
 
+## 1.0.1 — 2026-09-07
+
+- Fixed a centered-UI crash when opening the hairstyle picker in tModLoader character creation.
+
 ## 1.0.0 — 2026-09-06
 
 - Corrected centered tModLoader input and cursor alignment with SilkyUIFramework and ImproveGame.

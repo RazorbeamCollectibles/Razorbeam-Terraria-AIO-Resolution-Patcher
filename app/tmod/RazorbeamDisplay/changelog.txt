@@ -1,3 +1,6 @@
+1.0.1
+- Fixed a centered-UI crash when opening the hairstyle picker during character creation.
+
 1.0.0
 - First public release.
 - Adds arbitrary multi-monitor layouts for Terraria and tModLoader.

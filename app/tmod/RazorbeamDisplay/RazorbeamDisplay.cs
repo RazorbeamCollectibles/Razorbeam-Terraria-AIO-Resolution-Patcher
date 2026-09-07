@@ -9,6 +9,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Newtonsoft.Json;
 using Terraria;
 using Terraria.GameInput;
+using Terraria.GameContent.UI.States;
 using Terraria.ModLoader;
 using Terraria.ModLoader.Config;
 using Terraria.ModLoader.Config.UI;
@@ -83,6 +84,7 @@ public sealed class DisplaySystem : ModSystem
     private int positionDelay;
     private bool applied;
     private static int centeredUiDepth;
+    private static int logicalClipDepth;
     private static bool cursorPairActive;
     private static int cursorPairMouseX;
     private static int cursorPairMouseY;
@@ -110,6 +112,7 @@ public sealed class DisplaySystem : ModSystem
         On_UserInterface.Update += UserInterfaceUpdateCentered;
         On_UserInterface.GetDimensions += GetUiDimensionsCentered;
         On_UIElement.GetClippingRectangle += GetClippingRectangleCentered;
+        On_UIGamepadHelper.CullPointsOutOfElementArea += CullPointsOutOfElementAreaCentered;
         MonoModHooks.Add(UiScaleMatrixGetter, (HookUiScaleMatrix)GetUiScaleMatrixCentered);
     }
 
@@ -124,7 +127,9 @@ public sealed class DisplaySystem : ModSystem
         On_UserInterface.Update -= UserInterfaceUpdateCentered;
         On_UserInterface.GetDimensions -= GetUiDimensionsCentered;
         On_UIElement.GetClippingRectangle -= GetClippingRectangleCentered;
+        On_UIGamepadHelper.CullPointsOutOfElementArea -= CullPointsOutOfElementAreaCentered;
         centeredUiDepth = 0;
+        logicalClipDepth = 0;
         RestoreCursorPair();
         owningMod = null;
         CalculatedLayouts.Clear();
@@ -154,7 +159,7 @@ public sealed class DisplaySystem : ModSystem
     public override void PostSetupContent()
     {
         if (Main.dedServ) return;
-        Mod.Logger.Info("[AIORP] bridge build=1.0.0 (sandbox 0.0.30)");
+        Mod.Logger.Info("[AIORP] bridge build=1.0.1");
         InstallCompatibilityHook("SilkyUIFramework", "SilkyUIFramework.Helper.PlayerInputHelper", "SetZoom",
             new[] { typeof(Matrix).MakeByRefType() }, true, (HookMatrixZoom)SilkyMatrixZoomCentered);
         InstallCompatibilityHook("SilkyUIFramework", "SilkyUIFramework.SilkyUIInputState", "Update",
@@ -411,7 +416,7 @@ public sealed class DisplaySystem : ModSystem
     {
         Matrix matrix = orig();
         DisplayConfig config = ModContent.GetInstance<DisplayConfig>();
-        return ValidUi(config) && (centeredUiDepth > 0 || Main.gameMenu)
+        return logicalClipDepth == 0 && ValidUi(config) && (centeredUiDepth > 0 || Main.gameMenu)
             ? matrix * Matrix.CreateTranslation(config.UiX, config.UiY, 0f)
             : matrix;
     }
@@ -510,9 +515,24 @@ public sealed class DisplaySystem : ModSystem
         return new CalculatedStyle(0f, 0f, config.UiWidth / scale, config.UiHeight / scale);
     }
 
+    private static void CullPointsOutOfElementAreaCentered(On_UIGamepadHelper.orig_CullPointsOutOfElementArea orig, ref UIGamepadHelper self, SpriteBatch spriteBatch, List<SnapPoint> points, UIElement element)
+    {
+        DisplayConfig config = ModContent.GetInstance<DisplayConfig>();
+        if (!ValidUi(config) || centeredUiDepth == 0) {
+            orig(ref self, spriteBatch, points, element);
+            return;
+        }
+
+        // Gamepad culling compares logical SnapPoint coordinates against a clipping
+        // rectangle. Suppress the physical centered-screen translation for this call.
+        logicalClipDepth++;
+        try { orig(ref self, spriteBatch, points, element); }
+        finally { logicalClipDepth--; }
+    }
+
     private static Rectangle GetClippingRectangleCentered(On_UIElement.orig_GetClippingRectangle orig, UIElement self, SpriteBatch spriteBatch)
     {
-        if (centeredUiDepth == 0) return orig(self, spriteBatch);
+        if (centeredUiDepth == 0 || logicalClipDepth > 0) return orig(self, spriteBatch);
         DisplayConfig config = ModContent.GetInstance<DisplayConfig>();
         int screenWidth = Main.screenWidth, screenHeight = Main.screenHeight;
         float scale = SafeUiScale();

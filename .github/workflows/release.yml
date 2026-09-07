@@ -24,8 +24,6 @@ jobs:
       - shell: pwsh
         run: ./scripts/test.ps1
       - shell: pwsh
-        run: ./scripts/build.ps1
-      - shell: pwsh
         run: ./scripts/build.ps1 -OneFile
       - name: Package release files
         shell: pwsh
@@ -34,27 +32,12 @@ jobs:
           $stage = Join-Path $PWD '.build\release'
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
 
-          $portable = Join-Path $stage 'RazorbeamTerrariaPatcher'
-          Copy-Item '.build\portable\RazorbeamTerrariaPatcher' $portable -Recurse
-          Copy-Item 'README.md','LICENSE','THIRD_PARTY_NOTICES.md' $portable
-          Copy-Item 'docs' (Join-Path $portable 'docs') -Recurse
-          New-Item -ItemType Directory -Force -Path (Join-Path $portable 'app/assets') | Out-Null
-          Copy-Item 'app/assets/aiorp_icon.png' (Join-Path $portable 'app/assets')
-          Compress-Archive -LiteralPath $portable -DestinationPath (Join-Path $stage "Razorbeam-Terraria-AIO-RP-v$version-portable.zip")
-          Remove-Item $portable -Recurse -Force
-
           $standalone = Join-Path $stage 'standalone'
           New-Item -ItemType Directory -Force -Path $standalone | Out-Null
           Copy-Item '.build\standalone\RazorbeamTerrariaPatcher.exe' $standalone
-          Copy-Item 'README.md','LICENSE','THIRD_PARTY_NOTICES.md' $standalone
-          Copy-Item 'docs' (Join-Path $standalone 'docs') -Recurse
-          New-Item -ItemType Directory -Force -Path (Join-Path $standalone 'app/assets') | Out-Null
-          Copy-Item 'app/assets/aiorp_icon.png' (Join-Path $standalone 'app/assets')
           Compress-Archive -Path "$standalone\*" -DestinationPath (Join-Path $stage "Razorbeam-Terraria-AIO-RP-v$version-standalone.zip")
           Remove-Item $standalone -Recurse -Force
 
-          $sourceArchive = Join-Path $stage "Razorbeam-Terraria-AIO-RP-v$version-source.zip"
-          git archive --format=zip "--output=$sourceArchive" HEAD
           Copy-Item 'app\tmod\RazorbeamDisplay.tmod' (Join-Path $stage "All-in-One-Resolution-Patcher-v$version.tmod")
 
           $downloads = Get-ChildItem $stage -File | Where-Object Extension -in '.zip','.tmod' | Sort-Object Name
