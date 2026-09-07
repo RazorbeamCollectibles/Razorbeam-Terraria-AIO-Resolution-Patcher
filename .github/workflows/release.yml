@@ -32,16 +32,9 @@ jobs:
           $stage = Join-Path $PWD '.build\release'
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
 
-          $standalone = Join-Path $stage 'standalone'
-          New-Item -ItemType Directory -Force -Path $standalone | Out-Null
-          Copy-Item '.build\standalone\RazorbeamTerrariaPatcher.exe' $standalone
-          Compress-Archive -Path "$standalone\*" -DestinationPath (Join-Path $stage "Razorbeam-Terraria-AIO-RP-v$version-standalone.zip")
-          Remove-Item $standalone -Recurse -Force
-
-          Copy-Item 'app\tmod\RazorbeamDisplay.tmod' (Join-Path $stage "All-in-One-Resolution-Patcher-v$version.tmod")
-
-          $downloads = Get-ChildItem $stage -File | Where-Object Extension -in '.zip','.tmod' | Sort-Object Name
-          $downloads | ForEach-Object { "{0}  {1}" -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant(),$_.Name } | Set-Content (Join-Path $stage 'SHA256SUMS.txt')
+          Copy-Item '.build\standalone\RazorbeamTerrariaPatcher.exe' (Join-Path $stage 'RazorbeamTerrariaPatcher.exe')
+          $sourceArchive = Join-Path $stage "Razorbeam-Terraria-AIO-RP-v$version-source.zip"
+          git archive --format=zip "--output=$sourceArchive" HEAD
       - name: Create draft GitHub release
         shell: pwsh
         run: |

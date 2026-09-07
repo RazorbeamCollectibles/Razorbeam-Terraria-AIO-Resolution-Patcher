@@ -45,8 +45,10 @@ def backup_root(raw, exe=None):
     if not str(raw).strip(): raise ValueError("A backup location is mandatory. Nothing has been patched.")
     path = Path(os.path.expandvars(str(raw).strip().strip('"'))).expanduser().resolve()
     if not path.is_dir(): raise ValueError("Backup location must be an existing folder.")
-    if exe and (path == exe.parent or exe.parent in path.parents):
-        raise ValueError("Choose a backup location outside the Terraria installation so Steam updates cannot remove it.")
+    if exe:
+        game_dir = Path(exe).resolve().parent
+        if path == game_dir or game_dir in path.parents:
+            raise ValueError("Choose a backup location outside the Terraria installation so Steam updates cannot remove it.")
     probe = path / (".razorbeam-write-test-" + uuid.uuid4().hex + ".tmp")
     try:
         with probe.open("xb") as stream:

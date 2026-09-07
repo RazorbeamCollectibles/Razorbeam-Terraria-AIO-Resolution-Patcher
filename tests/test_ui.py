@@ -44,8 +44,8 @@ class Interface(unittest.TestCase):
         with patch('razorbeam_terraria.window.G.QDesktopServices.openUrl',return_value=True) as opened:
             self.w.open_game_location();self.w.open_backup_location()
         self.assertEqual(opened.call_count,2)
-        self.assertEqual(Path(opened.call_args_list[0].args[0].toLocalFile()),game)
-        self.assertEqual(Path(opened.call_args_list[1].args[0].toLocalFile()),self.output)
+        self.assertEqual(Path(opened.call_args_list[0].args[0].toLocalFile()).resolve(),game.resolve())
+        self.assertEqual(Path(opened.call_args_list[1].args[0].toLocalFile()).resolve(),self.output.resolve())
     def test_clean_and_patched_terraria_launch_through_steam(self):
         self.w.target_kind='terraria';self.w.prevent_minimize.setChecked(False)
         with patch('razorbeam_terraria.window.G.QDesktopServices.openUrl',return_value=True) as steam:
