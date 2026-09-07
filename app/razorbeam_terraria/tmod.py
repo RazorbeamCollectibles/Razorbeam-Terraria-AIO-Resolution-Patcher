@@ -83,6 +83,36 @@ def paths(installation=None):
     return root, {name: root / name for name in FILES}
 
 
+def enabled_mods(raw) -> list[str]:
+    try:
+        installation = install_dir(raw)
+        _, files = paths(installation)
+        value = json.loads(files[FILES[1]].read_text(encoding="utf-8-sig"))
+        return sorted(str(name) for name in value) if isinstance(value, list) else []
+    except (OSError, ValueError):
+        return []
+
+
+def diagnostic_log_lines(raw) -> list[str]:
+    try:
+        logs = install_dir(raw) / "tModLoader-Logs"
+        log = logs / "client.log"
+        lines = log.read_text(encoding="utf-8-sig", errors="replace").splitlines()
+    except (OSError, ValueError):
+        return []
+    useful = re.compile(r"AIORP diagnostics|RazorbeamDisplay|\b(?:WARN|ERROR|FATAL)\b|Exception", re.IGNORECASE)
+    result = [line for line in lines if useful.search(line)]
+    try:
+        steam_client = (logs / "terrariasteamclient.log").read_text(encoding="utf-8-sig", errors="replace")
+        if "connection to tML was closed unexpectedly" in steam_client:
+            result.append("[AIORP diagnostics] termination=abnormal reason=TerrariaSteamClient reported an unexpected tModLoader disconnect")
+        else:
+            result.append("[AIORP diagnostics] termination=no abnormal disconnect reported")
+    except OSError:
+        result.append("[AIORP diagnostics] termination=unknown reason=TerrariaSteamClient log unavailable")
+    return result
+
+
 def assert_closed(installation: Path):
     runtime = installation / "dotnet" / "dotnet.exe"
     if runtime.is_file():
@@ -177,12 +207,13 @@ def patch(raw, raw_root, settings, emit=lambda message: None):
                   "CenteredUi": bool(settings["UiEnabled"]), "UiX": settings["UiX"],
                   "UiY": settings["UiY"], "UiWidth": settings["UiWidth"],
                   "UiHeight": settings["UiHeight"], "PreventMinimize": bool(settings["PreventMinimize"]),
-                  "SkipSplash": bool(settings.get("SkipSplash", False))}
+                  "Diagnostics": bool(settings.get("Diagnostics", False))}
         atomic_json(files[FILES[2]], config)
+        startup.pop("QuickLaunch", None)
         startup.update({"DisplayWidth": settings["Width"], "DisplayHeight": settings["Height"],
                         "DisplayScreen": settings.get("DisplayScreen", ""),
                         "Fullscreen": settings["Mode"] == 2, "WindowMaximized": False,
-                        "WindowBorderless": False, "QuickLaunch": bool(settings.get("SkipSplash", False)),
+                        "WindowBorderless": False,
                         "ThrottleWhenInactive": False, "RemoveForcedMinimumZoom": True,
                         "Zoom": 1.0, "UIScale": 1.0, "ResetDefaultUIScale": False})
         atomic_json(files[FILES[3]], startup)

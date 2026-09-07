@@ -1,12 +1,35 @@
-# All-in-One Resolution Patcher
+# All-in-One Resolution Patcher for Terraria
 
 <p align="center">
   <img src="app/assets/aiorp_icon.png" width="144" alt="Razorbeam Terraria Patcher icon">
 </p>
 
-Stable release **1.0.0**. Windows 10/11, Terraria 1.4.5.8, and tModLoader 2026.7 are the validated release targets.
+## Highlights
+- Easy multi-monitor and widescreen support
+- Works with many popular tModLoader mods
+- One-click backup/restore
+- It just werks™ xdd
 
-The patcher configures arbitrary Terraria and tModLoader resolutions, multi-monitor window placement, centered UI, startup behavior, and stable window titles. Terraria executable changes use verified backups and semantic IL checks. tModLoader support uses the bundled client-side **All-in-One Resolution Patcher** mod; `tModLoader.dll` is never modified.
+# Quick Start Guide
+- (easiest) Just click here.
+- Go to Releases, scroll to the bottom, and download any of the .zip files, unzip, and click "LaunchRazorbeamDownloader.bat"
+- Click Code, Download ZIP, unzip, and click "LaunchRazorbeamTerrariaPatcher.bat"
+
+## Showcase 
+
+### Main Screen
+![Razorbeam Terraria Patcher main window](docs/images/Main.png)
+
+### Examples
+Full-resolution triplewide captures. Click either image for the original 7680×1440 view.
+
+[![Triplewide Terraria world at 7680×1440](docs/images/triplewide-world.png)](docs/images/triplewide-world.png)
+
+[![Centered inventory and crafting UI across a 7680×1440 Terraria span](docs/images/triplewide-centered-ui-crafting.png)](docs/images/triplewide-centered-ui-crafting.png)
+
+---
+
+Other crap:
 
 ## Run
 
@@ -33,28 +56,23 @@ The field may be changed. If it is blank or invalid, the action is refused and *
 - Selecting two displays is allowed; the game image crosses their shared bezel.
 - The display map uses physical Windows pixels and Windows Settings connector numbering.
 - Display changes trigger an explicit refresh warning.
-- Startup splash skipping uses the games' native `QuickLaunch` setting.
+- Startup splash skipping is available for vanilla Terraria. Splash skipping and title-message suppression are disabled for tModLoader.
 
 ## Centered UI
 
-Centered UI confines interface layout and input to the selected display while the world continues rendering across the full game surface.
+Centered UI places interface layout and hit testing on the selected display while the world and mouse remain available across the full game surface.
 
-Vanilla Terraria receives scoped logical dimensions, mouse translation, UI matrix translation, UI zoom preservation, crafting input support, and full-surface clipping. tModLoader applies the equivalent behavior through runtime hooks, including a scale-aware `Main.UIScaleMatrix` getter hook. Inventory, health, mana, minimap, settings, crafting, and mod-added interface layers therefore share the selected viewport at every UI scale.
+Vanilla Terraria receives scoped logical dimensions, mouse translation, UI matrix translation, UI zoom preservation, crafting input support, and full-surface clipping. tModLoader applies the equivalent behavior through runtime hooks, including a scale-aware `Main.UIScaleMatrix` getter hook. The bridge also includes compatibility hooks for SilkyUIFramework and ImproveGame custom input paths. Other mods with custom rendering or input may require additional compatibility work.
 
 Even-numbered monitor groups remain supported. The selected UI display determines placement; the feature is not disabled when a bezel falls at the center of the full span.
 
-## 7680×1440 showcase
-
-Full-resolution triplewide captures. Click either image for the original 7680×1440 view.
-
-[![Triplewide Terraria world at 7680×1440](docs/images/triplewide-world.png)](docs/images/triplewide-world.png)
-
-[![Centered inventory and crafting UI across a 7680×1440 Terraria span](docs/images/triplewide-centered-ui-crafting.png)](docs/images/triplewide-centered-ui-crafting.png)
 ## Window behavior
 
 **Keep game visible when focus changes** controls whether a minimized game is restored with `SW_SHOWNOACTIVATE`. The setting does not activate the game or change its Z-order. Its value is embedded in the vanilla patch or tModLoader bridge configuration so direct Steam launches behave like patcher launches.
 
-**Disable title messages** keeps vanilla Terraria titled `Terraria`. The tModLoader bridge uses `Razorbeam All-in-One Resolution Patcher for Terraria` when stable title mode is enabled.
+**Disable title messages** keeps vanilla Terraria titled `Terraria`. This option is unavailable for tModLoader.
+
+Configure the tModLoader display bridge through the desktop patcher. Its in-game config page provides guidance only; display settings are not edited there.
 
 ## Backup and restore
 
@@ -88,8 +106,6 @@ scripts\build.ps1
 Use `scripts\build.ps1 -OneFile` for the standalone packaging mode. Builds compile `PatchEngine.cs` against the pinned `app\engine\Mono.Cecil.dll`, then package the Python application with PyInstaller. No Terraria or tModLoader binaries are included.
 
 The optional executable integration test accepts `scripts\test.ps1 -TerrariaExe 'path\to\Terraria.exe'`. It operates on a temporary copy.
-
-See [STEAM-WORKSHOP.md](docs/STEAM-WORKSHOP.md) for private Workshop testing and publishing.
 
 ## Licensing
 

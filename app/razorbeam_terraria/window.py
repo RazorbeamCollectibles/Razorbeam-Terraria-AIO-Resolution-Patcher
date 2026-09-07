@@ -157,14 +157,14 @@ class MainWindow(AppearanceMixin, W.QMainWindow):
         row.addWidget(self.width_edit);row.addWidget(W.QLabel("×"));row.addWidget(self.height_edit);row.addStretch()
         detected=W.QPushButton("Use detected layout");detected.clicked.connect(lambda:self.use_detected(True));row.addWidget(detected);layout.addLayout(row)
         mode_row=W.QHBoxLayout();mode_row.addWidget(W.QLabel("Window mode"));self.mode=NoWheelComboBox()
-        self.mode.addItem("Borderless — span displays",1);self.mode.addItem("Windowed — with title bar",0);self.mode.addItem("Exclusive fullscreen",2)
+        self.mode.addItem("Borderless",1);self.mode.addItem("Windowed",0);self.mode.addItem("Fullscreen",2)
         self.mode.currentIndexChanged.connect(self.update_warning);mode_row.addWidget(self.mode,1);layout.addLayout(mode_row)
         self.stable_title=W.QCheckBox("Disable title messages");self.stable_title.setChecked(True)
         self.tooltip(self.stable_title,'Keep window title "Terraria"')
         layout.addWidget(self.stable_title)
         self.skip_splash=W.QCheckBox("Skip startup splash");self.skip_splash.setChecked(True)
         layout.addWidget(self.skip_splash)
-        self.center_splash=W.QCheckBox("Center startup art on selected display");self.center_splash.setChecked(bool(self.layout.get("triple")))
+        self.center_splash=W.QCheckBox("Center startup art on selected display");self.center_splash.setChecked(True)
         layout.addWidget(self.center_splash)
         self.skip_splash.toggled.connect(lambda checked:self.center_splash.setEnabled(not checked and self.target_kind!="tmodloader"))
         self.centered=W.QCheckBox("Centered UI");layout.addWidget(self.centered)
@@ -252,17 +252,22 @@ class MainWindow(AppearanceMixin, W.QMainWindow):
         saved=self.state.get("settings",{})
         for key,field in (("Width",self.width_edit),("Height",self.height_edit),("WindowX",self.window_x),("WindowY",self.window_y)):
             if key in saved:field.setText(str(saved[key]))
-        restore_ui=bool(saved.get("UiEnabled"))
+        restore_ui=bool(saved.get("UiEnabled",True))
         for key,field in self.ui_fields.items():
             mapped={"ui_x":"UiX","ui_y":"UiY","ui_width":"UiWidth","ui_height":"UiHeight"}[key]
             field.setText(str(saved[mapped] if restore_ui and mapped in saved else self.layout[key]))
         self.mode.setCurrentIndex(max(0,self.mode.findData(saved.get("Mode",1))))
-        self.stable_title.setChecked(bool(saved.get("StableTitle",1)));self.centered.setChecked(False)
+        self.stable_title.setChecked(bool(saved.get("StableTitle",1)));self.centered.setChecked(restore_ui)
         self.skip_splash.setChecked(bool(saved.get("SkipSplash",True)))
-        self.center_splash.setChecked(bool(saved.get("SplashEnabled",self.layout.get("triple",False))))
+        self.center_splash.setChecked(bool(saved.get("SplashEnabled",True)))
         self.ui_monitor.setCurrentIndex(max(0,self.ui_monitor.findData(self.layout.get("ui_monitor"))))
+        self.terraria_patch_options = self.state.get("terraria_patch_options",
+            [self.stable_title.isChecked(), self.skip_splash.isChecked(), self.center_splash.isChecked()]
+            if self.target_kind == "terraria" else [True, True, True])
 
     def target_changed(self):
+        if self.target_kind == "terraria":
+            self.terraria_patch_options = [self.stable_title.isChecked(), self.skip_splash.isChecked(), self.center_splash.isChecked()]
         old=self.target_kind;self.target_paths[old]=self.game.text();self.target_kind=self.target.currentData()
         self.game.blockSignals(True);self.game.setText(self.target_paths.get(self.target_kind,""));self.game.blockSignals(False)
         self.manual_path=False;self.result=None;self.update_target_ui()
@@ -271,11 +276,18 @@ class MainWindow(AppearanceMixin, W.QMainWindow):
 
     def update_target_ui(self):
         tml=self.target_kind=="tmodloader"
+        product="tModLoader" if tml else "Terraria"
+        self.version_label.setText(f"{product} Version: Detecting…")
         self.game.setPlaceholderText("Finding tModLoader automatically… or choose its folder" if tml else "Finding Terraria automatically… or choose Terraria.exe")
         self.stable_title.setText("Disable title messages")
-        self.tooltip(self.stable_title,'Keep window title "Razorbeam All-in-One Resolution Patcher for Terraria"' if tml else 'Keep window title "Terraria"')
+        for box, checked in zip((self.stable_title, self.skip_splash, self.center_splash), self.terraria_patch_options):
+            box.setChecked(False if tml else checked)
+        self.stable_title.setEnabled(not tml)
+        unsupported_tooltip = "Cannot disable splash in tModLoader due to API conflict."
+        self.tooltip(self.stable_title,unsupported_tooltip if tml else 'Keep window title "Terraria"')
         self.centered.setEnabled(True)
-        self.center_splash.setEnabled(not tml and not self.skip_splash.isChecked());self.skip_splash.setEnabled(True)
+        self.center_splash.setEnabled(not tml and not self.skip_splash.isChecked());self.skip_splash.setEnabled(not tml)
+        self.tooltip(self.skip_splash,unsupported_tooltip if tml else "")
         if tml:
             self.analysis_text.setText("tModLoader detected. Razorbeam installs a client-side display bridge. Centered UI covers vanilla and mod-added interface layers.")
         self.tooltip(self.centered,"Centers inventory, health bar, etc. to center of viewport")
@@ -358,10 +370,10 @@ class MainWindow(AppearanceMixin, W.QMainWindow):
         sx,sy,sw,sh=(splash.x-x,splash.y-y,splash.width,splash.height) if splash else (0,0,w,h)
         center_splash=self.center_splash.isChecked() and self.target_kind!="tmodloader" and sx>=0 and sy>=0 and sx+sw<=w and sy+sh<=h
         if not center_splash:sx,sy,sw,sh=0,0,w,h
-        return engine_settings(w,h,x,y,centered,**u,mode=self.mode.currentData(),stable_title=self.stable_title.isChecked(),
-                               display_screen=preferred,skip_splash=self.skip_splash.isChecked(),center_splash=center_splash,
+        return engine_settings(w,h,x,y,centered,**u,mode=self.mode.currentData(),stable_title=self.stable_title.isChecked() and self.target_kind!="tmodloader",
+                               display_screen=preferred,skip_splash=self.skip_splash.isChecked() and self.target_kind!="tmodloader",center_splash=center_splash,
                                splash_x=sx,splash_y=sy,splash_width=sw,splash_height=sh,
-                               prevent_minimize=self.prevent_minimize.isChecked())
+                               prevent_minimize=self.prevent_minimize.isChecked(),diagnostics=self.diagnostics_mode.isChecked())
 
     def update_warning(self):
         if not hasattr(self,"warning"):return
@@ -520,7 +532,7 @@ class MainWindow(AppearanceMixin, W.QMainWindow):
             if self.target_kind=="tmodloader":info+="\nClient-side bridge; Steam launches apply the patch. Centered UI covers vanilla and mod-added interface layers."
             if action=="analyze" and old and old!=result["sha256"]:info+="\nExecutable changed since the last patch (update, verification, restore, or another tool). Reapply only after analysis."
             self.analysis_text.setText(info);logging.info("Executable analysis completed: %s",result["state"])
-            version=str(result.get("version","Unknown"));latest=(self.target_kind=="terraria" and version=="1.4.5.8")
+            version=str(result.get("version","Unknown"));latest=version == {"terraria": "1.4.5.8", "tmodloader": "2026.7.3.0"}.get(self.target_kind)
             tag=f' <b><span style="color:{color_theme.ui_color("button_background")}">(Latest)</span></b>' if latest else ""
             self.version_label.setText(f"{product} Version: {version}{tag}")
             if action=="patch":
@@ -585,10 +597,21 @@ class MainWindow(AppearanceMixin, W.QMainWindow):
 
     def launch_game(self):
         app_id="1281930" if self.target_kind=="tmodloader" else "105600"
+        if self.diagnostics_mode.isChecked():
+            try:
+                current=self.settings()
+                logging.info("Diagnostics launch target=%s installation=%s settings=%s",self.target_kind,self.game.text(),json.dumps(current,sort_keys=True))
+                logging.info("Diagnostics displays=%s selected=%s",json.dumps([{"name":m.name,"id":m.display_id,"x":m.x,"y":m.y,"width":m.width,"height":m.height,"primary":m.primary} for m in self.monitors],sort_keys=True),json.dumps(self.selected_display_names))
+                if self.target_kind=="tmodloader":
+                    from . import tmod
+                    mods=tmod.enabled_mods(self.game.text())
+                    logging.info("Diagnostics enabled tModLoader mods (%s): %s",len(mods),", ".join(mods) if mods else "None")
+            except Exception:
+                logging.exception("Diagnostics launch snapshot failed")
         ok=G.QDesktopServices.openUrl(C.QUrl("steam://rungameid/"+app_id))
         name="tModLoader" if self.target_kind=="tmodloader" else "Terraria"
         if not ok:self.fail("Windows could not launch "+name+". The verified backup is retained.");return
-        logging.info("%s launch requested through Steam.",name);self.activity.setText(name+" launch requested through Steam. Backup retained.")
+        logging.info("%s launch handed to Steam by Razorbeam AIO RP.",name);self.activity.setText(name+" launch handed to Steam by Razorbeam AIO RP. Backup retained.")
 
     def choose_restore(self):
         if self.require_backup():self.start_job("backups")
@@ -622,6 +645,7 @@ class MainWindow(AppearanceMixin, W.QMainWindow):
 
     def save_state(self):
         state=load_app_state();state.update(self.state);self.target_paths[self.target_kind]=self.game.text();state["exe"]=self.game.text();state["target"]=self.target_kind;state["target_paths"]=self.target_paths;state["backup_root"]=self.backup.text();state["hide_log"]=getattr(self,"hide_log",None).isChecked() if hasattr(self,"hide_log") else False
+        state["terraria_patch_options"] = [self.stable_title.isChecked(), self.skip_splash.isChecked(), self.center_splash.isChecked()] if self.target_kind == "terraria" else self.terraria_patch_options
         state["diagnostics_mode"]=self.diagnostics_mode.isChecked();state["prevent_minimize"]=self.prevent_minimize.isChecked()
         try:state["settings"]=self.settings()
         except ValueError:pass
@@ -634,7 +658,12 @@ class MainWindow(AppearanceMixin, W.QMainWindow):
     def print_session(self):
         if not self.require_backup():return
         path=Path(self.backup.text())/(APP_NAME+" log - "+datetime.now().strftime("%Y-%m-%d %H-%M-%S")+".txt")
-        path.write_text("\n".join(self.session_handler.lines)+"\n",encoding="utf-8");logging.info("Verbose log printed: %s",path);self.status.setText("Log exported")
+        lines=list(self.session_handler.lines)
+        if self.diagnostics_mode.isChecked() and self.target_kind=="tmodloader":
+            from . import tmod
+            extra=tmod.diagnostic_log_lines(self.game.text())
+            lines.extend(["", "=== tModLoader diagnostics ===", *extra])
+        path.write_text("\n".join(lines)+"\n",encoding="utf-8");logging.info("Verbose log printed: %s",path);self.status.setText("Log exported")
 
     def fail(self,message):
         logging.error(message);self.status.setText("Attention required");W.QMessageBox.warning(self,WINDOW_TITLE,message)

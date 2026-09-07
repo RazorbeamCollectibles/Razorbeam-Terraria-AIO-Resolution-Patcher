@@ -78,7 +78,7 @@ def suggest_layout(monitors: list[Monitor]) -> dict:
 def engine_settings(width, height, x, y, centered, ui_x, ui_y, ui_width, ui_height, mode=1, stable_title=True,
                     display_screen="", skip_splash=False, center_splash=False,
                     splash_x=0, splash_y=0, splash_width=None, splash_height=None,
-                    prevent_minimize=False):
+                    prevent_minimize=False, diagnostics=False):
     for value in (width, height, ui_width, ui_height): dimension(str(value))
     if not -INT_MAX <= x <= INT_MAX or not -INT_MAX <= y <= INT_MAX:
         raise ValueError("Window position exceeds Windows coordinate range.")
@@ -96,4 +96,4 @@ def engine_settings(width, height, x, y, centered, ui_x, ui_y, ui_width, ui_heig
             "Mode": mode, "StableTitle": int(stable_title), "DisplayScreen": str(display_screen),
             "SkipSplash": bool(skip_splash), "SplashEnabled": int(bool(center_splash)),
             "SplashX": int(splash_x), "SplashY": int(splash_y), "SplashWidth": splash_width, "SplashHeight": splash_height,
-            "PreventMinimize": int(bool(prevent_minimize))}
+            "PreventMinimize": int(bool(prevent_minimize)), "Diagnostics": int(bool(diagnostics))}

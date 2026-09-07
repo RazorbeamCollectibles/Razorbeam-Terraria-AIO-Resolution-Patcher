@@ -154,14 +154,14 @@ class TModLoaderTransactions(unittest.TestCase):
         self.env=patch.dict(os.environ,{"RAZORBEAM_TML_SAVE":str(self.save)});self.env.start()
     def tearDown(self):self.env.stop();self.temp.cleanup()
     def test_install_enables_bridge_and_restore_removes_new_files(self):
-        settings=engine_settings(7680,1440,-2560,0,True,2560,0,2560,1440,mode=1,prevent_minimize=True,skip_splash=True)
+        settings=engine_settings(7680,1440,-2560,0,True,2560,0,2560,1440,mode=1,prevent_minimize=True,skip_splash=True,diagnostics=True)
         with patch.object(tmod,'bundled_mod',return_value=self.bridge):result=tmod.patch(self.install,self.backups,settings)
         config=json.loads((self.save/'ModConfigs/RazorbeamDisplay_DisplayConfig.json').read_text())
         self.assertEqual(config['Width'],7680);self.assertTrue(config['CenteredUi']);self.assertEqual(config['UiX'],2560)
-        self.assertTrue(config['PreventMinimize']);self.assertTrue(config['SkipSplash'])
+        self.assertTrue(config['PreventMinimize']);self.assertNotIn('SkipSplash',config);self.assertTrue(config['Diagnostics'])
         startup=json.loads((self.save/'config.json').read_text())
         self.assertEqual((startup['DisplayWidth'],startup['DisplayHeight']),(7680,1440))
-        self.assertFalse(startup['WindowBorderless']);self.assertFalse(startup['ThrottleWhenInactive']);self.assertTrue(startup['QuickLaunch'])
+        self.assertFalse(startup['WindowBorderless']);self.assertFalse(startup['ThrottleWhenInactive']);self.assertNotIn('QuickLaunch',startup)
         self.assertTrue(startup['RemoveForcedMinimumZoom']);self.assertEqual(startup['Zoom'],1.0)
         self.assertEqual(startup['UIScale'],1.0);self.assertFalse(startup['ResetDefaultUIScale'])
         self.assertIn('RazorbeamDisplay',json.loads((self.save/'Mods/enabled.json').read_text()))
@@ -169,6 +169,22 @@ class TModLoaderTransactions(unittest.TestCase):
         restored=tmod.restore(self.install,self.backups,result['backup'])
         self.assertTrue(restored['restored']);self.assertFalse((self.save/'Mods/RazorbeamDisplay.tmod').exists())
         self.assertFalse((self.save/'config.json').exists())
+
+    def test_diagnostics_read_enabled_mods_and_useful_client_log_lines(self):
+        (self.save/'Mods').mkdir(parents=True);(self.save/'Mods/enabled.json').write_text('["Zulu","Alpha"]',encoding='utf-8')
+        logs=self.install/'tModLoader-Logs';logs.mkdir()
+        (logs/'client.log').write_text('ordinary line\n[AIORP diagnostics] cursor\nWARN mod warning\n',encoding='utf-8')
+        (logs/'terrariasteamclient.log').write_text('The connection to tML was closed unexpectedly. Look in client.log for details\n',encoding='utf-8')
+        self.assertEqual(tmod.enabled_mods(self.install),['Alpha','Zulu'])
+        self.assertEqual(tmod.diagnostic_log_lines(self.install),[
+            '[AIORP diagnostics] cursor','WARN mod warning',
+            '[AIORP diagnostics] termination=abnormal reason=TerrariaSteamClient reported an unexpected tModLoader disconnect'])
+
+    def test_diagnostics_reports_unknown_termination_without_steam_client_log(self):
+        logs=self.install/'tModLoader-Logs';logs.mkdir()
+        (logs/'client.log').write_text('[AIORP diagnostics] cursor\n',encoding='utf-8')
+        self.assertEqual(tmod.diagnostic_log_lines(self.install)[-1],
+                         '[AIORP diagnostics] termination=unknown reason=TerrariaSteamClient log unavailable')
 
     def test_real_save_directory_comes_from_tmodloader_log(self):
         self.env.stop()

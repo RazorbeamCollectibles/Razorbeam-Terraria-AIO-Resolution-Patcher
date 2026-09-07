@@ -55,17 +55,19 @@ class Interface(unittest.TestCase):
             steam.assert_called_once()
 
     def test_tmodloader_launches_through_steam(self):
-        self.w.target_kind='tmodloader'
-        with patch('razorbeam_terraria.window.G.QDesktopServices.openUrl',return_value=True) as steam:
+        self.w.target_kind='tmodloader';self.w.diagnostics_mode.setChecked(True)
+        self.w.skip_splash.setChecked(False)
+        with patch('razorbeam_terraria.tmod.enabled_mods',return_value=['Alpha','Zulu']),patch('razorbeam_terraria.window.logging.info') as info,patch('razorbeam_terraria.window.G.QDesktopServices.openUrl',return_value=True) as steam:
             self.w.launch_game()
             self.assertIn('1281930',steam.call_args.args[0].toString())
+        self.assertTrue(any('enabled tModLoader mods' in str(call) and 'Alpha, Zulu' in str(call) for call in info.call_args_list))
 
     def test_patch_buttons_name_and_select_explicit_targets(self):
         self.assertEqual(self.w.patch_play.text(),'Patch && Launch Terraria')
         self.assertEqual(self.w.patch_only.text(),'Patch && Launch tModLoader')
         with patch.object(self.w,'begin_patch') as begin:
             self.w.begin_patch_target('tmodloader')
-            self.assertEqual(self.w.target_kind,'tmodloader');begin.assert_called_once_with(True)
+            self.assertEqual(self.w.target_kind,'tmodloader');self.assertEqual(self.w.version_label.text(),'tModLoader Version: Detecting…');begin.assert_called_once_with(True)
     def test_manual_typing_cancels_search_and_stale_result_cannot_override(self):
         with patch.object(self.w,'stop_discovery') as stop:
             self.w.manual_game();stop.assert_called_once()
@@ -93,7 +95,7 @@ class Interface(unittest.TestCase):
         self.assertEqual(self.w.skip_splash.text(),'Skip startup splash')
         self.assertEqual(self.w.center_splash.text(),'Center startup art on selected display')
         self.assertEqual(self.w.centered.text(),'Centered UI')
-        self.assertTrue(self.w.centered.isEnabled());self.assertFalse(self.w.centered.isChecked());self.assertEqual(self.w.settings()['Width'],7680)
+        self.assertTrue(self.w.centered.isEnabled());self.assertTrue(self.w.centered.isChecked());self.assertEqual(self.w.settings()['Width'],7680)
         self.w.centered.setChecked(True);settings=self.w.settings();self.assertEqual(settings['UiEnabled'],1)
         self.assertEqual((settings['UiX'],settings['UiY'],settings['UiWidth'],settings['UiHeight']),(2560,0,2560,1440))
         self.assertEqual(settings['PreventMinimize'],0)
@@ -113,6 +115,12 @@ class Interface(unittest.TestCase):
     def test_tmodloader_supports_centered_ui(self):
         self.w.centered.setChecked(True);self.w.target.setCurrentIndex(self.w.target.findData('tmodloader'))
         self.assertTrue(self.w.centered.isEnabled());self.assertTrue(self.w.centered.isChecked());self.assertEqual(self.w.settings()['UiEnabled'],1)
+        self.assertFalse(self.w.skip_splash.isEnabled());self.assertFalse(self.w.settings()['SkipSplash'])
+        self.assertEqual(self.w.skip_splash._razorbeam_tooltip_filters[0].tooltip_text.strip(),'Cannot disable splash in tModLoader due to API conflict.')
+    def test_centered_ui_choice_is_restored(self):
+        self.w.state['settings']={**self.w.settings(),'UiEnabled':1,'UiX':2560,'UiY':0,'UiWidth':2560,'UiHeight':1440}
+        self.w.centered.setChecked(False);self.w.apply_saved_settings()
+        self.assertTrue(self.w.centered.isChecked())
     def test_nessa_requires_rapid_commit_and_stays_bottom_left(self):
         for _ in range(3):self.w.record_nessa_click()
         self.assertEqual(self.w.nessa_target,0)
@@ -131,6 +139,7 @@ class Interface(unittest.TestCase):
         self.assertFalse(hasattr(self.w.skip_splash,'_razorbeam_tooltip_filters'))
         self.assertFalse(hasattr(self.w.center_splash,'_razorbeam_tooltip_filters'))
     def test_arbitrary_dimensions_preserved(self):
+        self.w.centered.setChecked(False)
         self.w.width_edit.setText('1');self.w.height_edit.setText('10000')
         self.assertEqual((self.w.settings()['Width'],self.w.settings()['Height']),(1,10000))
     def test_footer_visibility(self):
@@ -141,6 +150,16 @@ class Interface(unittest.TestCase):
         self.w.session_handler.lines.append('verbose diagnostics')
         with patch('PySide6.QtWidgets.QFileDialog.getExistingDirectory') as dialog:self.w.print_session();dialog.assert_not_called()
         self.assertEqual(len(list(Path(self.runtime.name).glob('Razorbeam Terraria Patcher log - *.txt'))),1)
+    def test_diagnostics_export_includes_tmodloader_runtime_lines(self):
+        self.w.backup.setText(self.runtime.name);self.w.target_kind='tmodloader';self.w.diagnostics_mode.setChecked(True)
+        with patch('razorbeam_terraria.tmod.diagnostic_log_lines',return_value=['[AIORP diagnostics] cursor=(1,2)']):self.w.print_session()
+        output=next(Path(self.runtime.name).glob('Razorbeam Terraria Patcher log - *.txt')).read_text(encoding='utf-8')
+        self.assertIn('=== tModLoader diagnostics ===',output);self.assertIn('cursor=(1,2)',output)
+    def test_launch_log_identifies_launcher_handoff_to_steam(self):
+        self.w.target_kind='tmodloader';self.w.diagnostics_mode.setChecked(False)
+        with patch('PySide6.QtGui.QDesktopServices.openUrl',return_value=True),self.assertLogs(level='INFO') as captured:
+            self.w.launch_game()
+        self.assertIn('tModLoader launch handed to Steam by Razorbeam AIO RP.',captured.output[-1])
     def test_monitor_click_selection_and_detected_layout_restore(self):
         target=self.w.monitors[-1];self.w.select_display(target.name)
         self.assertEqual((self.w.width_edit.text(),self.w.height_edit.text()),(str(target.width),str(target.height)))

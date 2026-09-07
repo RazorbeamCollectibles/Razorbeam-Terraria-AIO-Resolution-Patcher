@@ -17,10 +17,9 @@ class AppearanceMixin:
         self.prevent_minimize = QtWidgets.QCheckBox("Keep game visible when focus changes")
         self.prevent_minimize.setChecked(bool(self.state.get("prevent_minimize", False)))
         general.content_layout.addWidget(self.prevent_minimize)
-        log_options = CollapsibleSection("Log"); layout.addWidget(log_options)
         self.hide_log = QtWidgets.QCheckBox("Hide log tab"); self.hide_log.setChecked(bool(self.state.get("hide_log", False)))
         self.tooltip(self.hide_log, "Hides the Log tab from the main view. Logging continues and can be restored here.")
-        self.hide_log.toggled.connect(self.set_log_hidden); log_options.content_layout.addWidget(self.hide_log)
+        self.hide_log.toggled.connect(self.set_log_hidden); general.content_layout.addWidget(self.hide_log)
         appearance = CollapsibleSection("Appearance"); layout.addWidget(appearance); layout.addStretch()
         self.color_controls = {}
         for name, defs in (("ui", color_theme.UI_COLOR_DEFS), ("log", color_theme.LOG_COLOR_DEFS)):
@@ -36,7 +35,7 @@ class AppearanceMixin:
                          ("Reset UI colors", lambda: self.reset_colors("ui")), ("Reset log colors", lambda: self.reset_colors("log"))):
             button = QtWidgets.QPushButton(text); button.clicked.connect(fn); custom.content_layout.addWidget(button, 0, QtCore.Qt.AlignmentFlag.AlignLeft)
         self.show_all = QtWidgets.QPushButton("Show all"); self.show_all.clicked.connect(self.toggle_options)
-        self.option_sections = [general, log_options, appearance, *appearance.findChildren(CollapsibleSection)]
+        self.option_sections = [general, appearance, *appearance.findChildren(CollapsibleSection)]
         return page
 
     def toggle_options(self):
@@ -82,6 +81,10 @@ class AppearanceMixin:
     def tooltip(self, widget, text):
         for old in getattr(widget, "_razorbeam_tooltip_filters", []):
             widget.removeEventFilter(old); old.deleteLater()
+        if not text:
+            if hasattr(widget, "_razorbeam_tooltip_filters"):delattr(widget, "_razorbeam_tooltip_filters")
+            if isinstance(widget, (QtWidgets.QLabel, QtWidgets.QCheckBox)):widget.setStyleSheet("")
+            return
         widget.setMouseTracking(True); widget.setAttribute(QtCore.Qt.WidgetAttribute.WA_Hover, True)
         tip = CursorTooltipFilter(text, widget); widget.installEventFilter(tip)
         widget._razorbeam_tooltip_filters = [tip]
